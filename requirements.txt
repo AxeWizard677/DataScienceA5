@@ -1,0 +1,11 @@
+# Portable minimal requirements for the Leyenda Deliverable 1 notebooks.
+# Lower bounds only, no pre-release pins. Only the exact versions in
+# requirements-lock.txt have actually been tested (see README, section Environment).
+tensorflow>=2.16
+numpy>=1.26
+pandas>=2.0
+scikit-learn>=1.3
+pillow>=10.0
+matplotlib>=3.9
+jupyter>=1.0
+ipykernel>=6.0

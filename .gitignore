@@ -1,0 +1,31 @@
+# Data and models (too large)
+data/
+models/
+*.h5
+*.keras
+*.weights.h5
+*.npy
+*.npz
+*.pkl
+
+# Python environments and caches
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Misc
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Numpy cache of resized images
+cache/
+
+#  Personal instructions
+CLAUDE.md
+
+
+# Virtual environments
+.venv312/
+uv-bootstrap/
