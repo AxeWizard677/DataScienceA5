@@ -5,7 +5,9 @@ Binary image classification (TouNum): Photo (label 1) against Painting, Schemati
 ## Repo structure
 
 - `00_data_prep.ipynb`: inventory, duplicates, size threshold, split, leakage check. Output: `protocol/manifest.csv`.
-- `01_mlp.ipynb`, `02_cnn.ipynb`, `03_improvements.ipynb`, (`04_pretrained.ipynb`), then `livrable1.ipynb` (final assembly): planned, not written yet.
+- `01_mlp.ipynb`, `02_cnn.ipynb`: MLP and CNN baselines, Photo vs the 4 other origins (and Photo vs Text only).
+- `03_improvements.ipynb`, (`04_pretrained.ipynb`), then `livrable1.ipynb` (final assembly): planned, not written yet.
+- `utils.py`: helpers shared by notebooks 01 and later (`load_images`, `class_weights`, `evaluate`, `plot_curves`). `livrable1.ipynb` will copy them inline instead of importing.
 - `protocol/manifest.csv`: one row per image (path, origin, label, size, md5, drop_reason, split).
 - `reports/`: CSV tables and PNG figures. `cache/`: ignored by git.
 - `requirements.txt`, `requirements-lock.txt`, `.gitignore`.
@@ -14,7 +16,8 @@ Binary image classification (TouNum): Photo (label 1) against Painting, Schemati
 
 1. Put the images in `data/Datasets/<origin>/` (5 folders: Painting, Photo, Schematics, Sketch, Text). `00_data_prep.ipynb` also reads `LEYENDA_DATA_DIR` if set.
 2. Open the notebooks from the repo root (paths are relative), with a kernel from one of the environments below.
-3. Run `00_data_prep.ipynb` first (about 1 min), then the other notebooks in numeric order.
+3. Run `00_data_prep.ipynb` first (about 1 min), then the other notebooks in numeric order. Notebooks 01 and later need a GPU and stop with a message otherwise.
+4. `02_cnn.ipynb` reads the MLP and decision-tree rows from `reports/test_results.csv`, written by `01_mlp.ipynb`: run 01 before 02. The architecture diagram in 02 also needs `graphviz` (see Environment).
 
 ## Data protocol
 
@@ -43,6 +46,8 @@ GPU check (both stacks warn that kernels for compute capability 12.0a are JIT-co
 import tensorflow as tf
 print(tf.__version__, tf.config.list_physical_devices("GPU"))   # expect one GPU
 ```
+
+The architecture diagram of `02_cnn.ipynb` needs the system package graphviz (`sudo apt install graphviz`) in addition to `pydot` from `requirements.txt`.
 
 A `.keras` model saved in one stack loads in the other, with identical predictions (tested both ways).
 

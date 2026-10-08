@@ -9,3 +9,4 @@ pillow>=10.0
 matplotlib>=3.9
 jupyter>=1.0
 ipykernel>=6.0
+pydot>=1.4
