@@ -10,14 +10,14 @@ Binary image classification (TouNum): Photo (label 1) against Painting, Schemati
 - `utils.py`: helpers shared by notebooks 01 and later (`load_images`, `class_weights`, `evaluate`, `plot_curves`). `livrable1.ipynb` will copy them inline instead of importing.
 - `protocol/manifest.csv`: one row per image (path, origin, label, size, md5, drop_reason, split).
 - `reports/`: CSV tables and PNG figures. `cache/`: ignored by git.
-- `requirements.txt`, `requirements-lock.txt`, `.gitignore`.
+- `requirements.txt`, `.gitignore`.
 
 ## How to run
 
 1. Put the images in `data/Datasets/<origin>/` (5 folders: Painting, Photo, Schematics, Sketch, Text). `00_data_prep.ipynb` also reads `LEYENDA_DATA_DIR` if set.
 2. Open the notebooks from the repo root (paths are relative), with a kernel from one of the environments below.
 3. Run `00_data_prep.ipynb` first (about 1 min), then the other notebooks in numeric order. Notebooks 01 and later need a GPU and stop with a message otherwise.
-4. `02_cnn.ipynb` reads the MLP and decision-tree rows from `reports/test_results.csv`, written by `01_mlp.ipynb`: run 01 before 02. The architecture diagram in 02 also needs `graphviz` (see Environment).
+4. `02_cnn.ipynb` reads the MLP and decision-tree rows from `reports/test_results.csv`, written by `01_mlp.ipynb`: run 01 before 02.
 
 ## Data protocol
 
@@ -29,7 +29,7 @@ Binary image classification (TouNum): Photo (label 1) against Painting, Schemati
 
 ## Environment
 
-Maxime's stack (WSL2 Ubuntu 26.04, RTX 5060 Laptop GPU 8 GB, driver 616.92): Python 3.14.4, TensorFlow 2.22.0rc0, keras-nightly 3.16.0.dev2026100504, CUDA 12.9 libraries from pip (`nvidia-*-cu12`). All versions are in `requirements-lock.txt`. 
+Maxime's stack (WSL2 Ubuntu 26.04, RTX 5060 Laptop GPU 8 GB, driver 616.92): Python 3.14.4, TensorFlow 2.22.0rc0, keras-nightly 3.16.0.dev2026100504, CUDA 12.9 libraries from pip (`nvidia-*-cu12`). The notebooks print the exact library versions they ran with (first code cell).
 
 
 ```bash
@@ -47,14 +47,12 @@ import tensorflow as tf
 print(tf.__version__, tf.config.list_physical_devices("GPU"))   # expect one GPU
 ```
 
-The architecture diagram of `02_cnn.ipynb` needs the system package graphviz (`sudo apt install graphviz`) in addition to `pydot` from `requirements.txt`.
-
 A `.keras` model saved in one stack loads in the other, with identical predictions (tested both ways).
 
 ## Not verified
 
 - The command used to install the author's stack.
-- The lower bounds in `requirements.txt`: only the versions in `requirements-lock.txt` and the 3.12 stack above were run.
+- The lower bounds in `requirements.txt`: only the versions printed by the notebooks (stack above) and the 3.12 stack were run.
 - Running the notebooks on the 3.12 stack (only a GPU benchmark and the `.keras` exchange were run), including `LD_LIBRARY_PATH` in a VS Code kernel.
 - Native Windows or macOS.
-- That the pre-release versions in `requirements-lock.txt` stay downloadable from PyPI.
+- That the pre-release versions of the author's stack (TensorFlow 2.22.0rc0, keras-nightly) stay downloadable from PyPI.
