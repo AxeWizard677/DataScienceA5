@@ -1,36 +1,44 @@
 # Leyenda – Deliverable 1: Photo vs non-Photo
 
-Binary image classification (TouNum): Photo (label 1) against Painting, Schematics, Sketch and Text (label 0).
+Binary image classification for TouNum: Photo (label 1) against Painting, Schematics, Sketch and Text (label 0).
+The main deliverable is `deliverable1.ipynb`: self-contained, about 22 min on an NVIDIA GPU (22.1 min on an RTX 5060 Laptop in the last run).
 
 ## Repo structure
 
-- `00_data_prep.ipynb`: inventory, duplicates, size threshold, split, leakage check. Output: `protocol/manifest.csv`.
-- `01_mlp.ipynb`, `02_cnn.ipynb`: MLP and CNN baselines, Photo vs the 4 other origins (and Photo vs Text only).
-- `03_improvements.ipynb`, (`04_pretrained.ipynb`), then `livrable1.ipynb` (final assembly): planned, not written yet.
-- `utils.py`: helpers shared by notebooks 01 and later (`load_images`, `class_weights`, `evaluate`, `plot_curves`). `livrable1.ipynb` will copy them inline instead of importing.
-- `protocol/manifest.csv`: one row per image (path, origin, label, size, md5, drop_reason, split).
-- `reports/`: CSV tables and PNG figures. `cache/`: ignored by git.
-- `requirements.txt`, `.gitignore`.
+- `deliverable1.ipynb`: final notebook. It does not import `utils.py`, does not read `protocol/manifest.csv` or `LEYENDA_DATA_DIR`: it reads `data/Datasets`, saves the MobileNetV2 weights to `models/final_pretrained.keras` (not versioned) and recomputes inventory, duplicates, split and leakage check itself (seed 42).
+- `00_data_prep.ipynb`: builds `protocol/manifest.csv`. Reads `LEYENDA_DATA_DIR` if set, otherwise `data/Datasets`.
+- `01_mlp.ipynb` to `04_pretrained.ipynb`: development notebooks. They read `protocol/manifest.csv` and import `utils.py`; they read the data from `data/Datasets` only.
+- `utils.py`: shared helpers (`load_images`, `class_weights`, `evaluate`, `plot_curves`).
+- `protocol/manifest.csv`: one row per image (`drop_reason`, `split`).
+- `reports/`: written by `deliverable1.ipynb`: `final_val_summary.csv`, `final_test_results.csv` and 7 PNG figures (MLP and CNN architecture, baseline curves, variant curves, pretrained curves, confusion matrix, error by origin); `reports/0*` (development) is not versioned.
+- `requirements.txt`, `requirements-lock.txt` (exact versions of the final run; this file does not exist yet).
+
+## Data
+
+`data/Datasets/<origin>/` at the repo root, not versioned: 41,399 files in 5 folders (Painting, Photo, Schematics, Sketch, Text).
+Dropped, never deleted: 696 exact duplicates (same md5), 401 images with a shortest side under 32 px (all Schematics). Kept: 40,302, split 70/15/15 stratified by origin (28,211 / 6,045 / 6,046), no md5 in two splits.
+The md5 of `protocol/manifest.csv` is `fe4b4a4407369bdfdfc15700576a0515`.
+
+## Setup
+
+1. Verified stack: Python 3.12, TensorFlow 2.21 (stable), Keras 3.15.1. Final-run stack: TensorFlow 2.22.0-rc0, Keras 3.16.0.dev (`requirements-lock.txt` is not created yet).
+2. `sudo apt install graphviz`, then `pip install -r requirements.txt pydot` (needed by `plot_model`).
+3. On the 3.12 stack, set `LD_LIBRARY_PATH` to the pip `nvidia/cusolver/lib` folder (command below), otherwise no GPU is found.
+4. Internet is needed once to download the ImageNet weights of MobileNetV2.
+5. Every TensorFlow notebook stops with a message if no GPU is found.
 
 ## How to run
 
-1. Put the images in `data/Datasets/<origin>/` (5 folders: Painting, Photo, Schematics, Sketch, Text). `00_data_prep.ipynb` also reads `LEYENDA_DATA_DIR` if set.
-2. Open the notebooks from the repo root (paths are relative), with a kernel from one of the environments below.
-3. Run `00_data_prep.ipynb` first (about 1 min), then the other notebooks in numeric order. Notebooks 01 and later need a GPU and stop with a message otherwise.
-4. `02_cnn.ipynb` reads the MLP and decision-tree rows from `reports/test_results.csv`, written by `01_mlp.ipynb`: run 01 before 02.
+Open the notebooks from the repo root (paths are relative). Run `00_data_prep.ipynb`, then optionally `01` to `04` (`02_cnn.ipynb` reads `reports/test_results.csv` written by `01`), then `deliverable1.ipynb`.
+Seed 42 everywhere. Two executions give slightly different numbers (GPU non-determinism): see the Limits cell of `deliverable1.ipynb`.
 
-## Data protocol
+## Branches
 
-- 41,399 files. Dropped (marked in `drop_reason`, never deleted): 696 `exact_duplicate` (same md5, first path in alphabetical order kept), 401 `too_small` (shortest side under 32 px, all Schematics). 0 `unreadable`, 0 `not_an_image`, 0 `label_conflict`.
-- The 32 px threshold (`MIN_SIDE_PX`) is proposed by the author after visual inspection, to be validated by the group.
-- Kept: 40,302. Split 70/15/15 after cleaning, stratified by origin, seed 42: 28,211 train, 6,045 val, 6,046 test. No md5 is in two splits.
-- Test on the natural distribution: 24.79 % Photo, majority-class rate 0.7521.
-- Regenerating the manifest gives the same file: md5 `fe4b4a4407369bdfdfc15700576a0515`.
+Everyone works on their own branch (e.g. `maxime/deliverable-1`); never push to `main`.
 
 ## Environment
 
 Maxime's stack (WSL2 Ubuntu 26.04, RTX 5060 Laptop GPU 8 GB, driver 616.92): Python 3.14.4, TensorFlow 2.22.0rc0, keras-nightly 3.16.0.dev2026100504, CUDA 12.9 libraries from pip (`nvidia-*-cu12`). The notebooks print the exact library versions they ran with (first code cell).
-
 
 ```bash
 python3 -m venv uv-bootstrap && uv-bootstrap/bin/pip install uv
@@ -48,11 +56,3 @@ print(tf.__version__, tf.config.list_physical_devices("GPU"))   # expect one GPU
 ```
 
 A `.keras` model saved in one stack loads in the other, with identical predictions (tested both ways).
-
-## Not verified
-
-- The command used to install the author's stack.
-- The lower bounds in `requirements.txt`: only the versions printed by the notebooks (stack above) and the 3.12 stack were run.
-- Running the notebooks on the 3.12 stack (only a GPU benchmark and the `.keras` exchange were run), including `LD_LIBRARY_PATH` in a VS Code kernel.
-- Native Windows or macOS.
-- That the pre-release versions of the author's stack (TensorFlow 2.22.0rc0, keras-nightly) stay downloadable from PyPI.
