@@ -29,3 +29,6 @@ CLAUDE.md
 # Virtual environments
 .venv312/
 uv-bootstrap/
+
+# Report files
+reports/0*reports_prev_run/

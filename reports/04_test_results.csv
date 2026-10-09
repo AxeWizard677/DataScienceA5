@@ -1,6 +1,0 @@
-model,precision,recall,f1,balanced_acc,pr_auc,accuracy
-decision tree (metadata),0.9641,0.9853,0.9746,0.9866,0.9849,0.9873
-MLP,0.5099,0.9093,0.6534,0.8106,0.6152,0.7608
-CNN baseline (03),0.7698,0.7698,0.7698,0.847,0.8318,0.8859
-"CNN final, augmentation (03)",0.707,0.9079,0.795,0.892,0.8862,0.8839
-pretrained MobileNetV2,0.9642,0.9713,0.9678,0.9797,0.9926,0.984
