@@ -31,4 +31,5 @@ CLAUDE.md
 uv-bootstrap/
 
 # Report files
-reports/0*reports_prev_run/
+reports/0*
+reports_prev_run/
