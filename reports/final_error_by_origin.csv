@@ -1,6 +1,0 @@
-origin,majority,decision tree (metadata),MLP,CNN baseline,CNN best variant (e. global avg pooling),MobileNetV2 (phase 2: fine-tuned)
-Painting,0.0,0.032,0.6927,0.2033,0.4007,0.0333
-Photo,1.0,0.0147,0.1001,0.2008,0.0594,0.0307
-Schematics,0.0,0.0052,0.2073,0.0344,0.0606,0.0037
-Sketch,0.0,0.0,0.0,0.0,0.0,0.0
-Text,0.0,0.0,0.0007,0.0,0.0,0.0
