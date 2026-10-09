@@ -48,7 +48,7 @@ def train(spec: dict):
         model, initial_epoch = keras.models.load_model(last_model), last_epoch + 1  # weights + optimizer state
     else:
         model = M.BUILDERS[spec["builder"]](img_size=img, **spec.get("builder_kwargs", {}))
-        M.compile_binary(model, spec["lr"])
+        M.compile_binary(model, spec["lr"], label_smoothing=spec.get("label_smoothing", 0.0))
         initial_epoch = 0
     train_ds = make_dataset(train_df, img, spec["batch_size"], shuffle=True, cache=cache / f"train_{tag}_{img}")
     val_ds = make_dataset(val_df, img, 64, cache=cache / f"val_{img}")

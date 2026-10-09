@@ -25,7 +25,20 @@ def _inspect(path: Path) -> dict:
         info["readable"] = True
     except Exception as exc:
         info.update(readable=False, error=type(exc).__name__)
+    # PIL is more permissive than TensorFlow (e.g. a BMP file named .jpg opens in PIL but not in
+    # tf.io.decode_image), so also check with the decoder the training pipeline actually uses
+    info["tf_decodable"] = _tf_decodable(path) if info["readable"] else False
     return info
+
+
+def _tf_decodable(path: Path) -> bool:
+    import tensorflow as tf
+
+    try:
+        tf.io.decode_image(tf.io.read_file(str(path)), channels=3, expand_animations=False)
+        return True
+    except Exception:
+        return False
 
 
 def build_index(root: Path = RAW_DIR, positive: str = "Photo", workers: int = 16) -> pd.DataFrame:
@@ -41,12 +54,15 @@ def build_index(root: Path = RAW_DIR, positive: str = "Photo", workers: int = 16
 
 
 def clean_index(df: pd.DataFrame, min_side: int = 32) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Drop unreadable files, images smaller than `min_side` px (extraction debris: colour-bar strips,
+    """Drop unreadable files (by PIL or by TensorFlow's decoder), images smaller than `min_side` px (extraction debris: colour-bar strips,
     1-px slivers, which carry no information once resized) and exact duplicates. Duplicates whose
     copies sit in different categories are ambiguous labels, so every copy is dropped; otherwise the
     first copy is kept. Returns (clean_df, removed_df with a `reason` column)."""
     removed = [df[~df["readable"]].assign(reason="unreadable")]
     ok = df[df["readable"]]
+    if "tf_decodable" in ok:  # indexes built before this check existed don't have the column
+        removed.append(ok[~ok["tf_decodable"]].assign(reason="not decodable by TensorFlow"))
+        ok = ok[ok["tf_decodable"]]
     tiny = ok[["width", "height"]].min(axis=1) < min_side
     removed.append(ok[tiny].assign(reason=f"smaller than {min_side}px"))
     ok = ok[~tiny]

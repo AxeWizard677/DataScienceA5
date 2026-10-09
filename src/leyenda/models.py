@@ -9,15 +9,20 @@ import keras
 from keras import layers, regularizers
 
 
-def augmentation(seed: int = 42) -> keras.Sequential:
+def augmentation(seed: int = 42, grayscale: float = 0.0) -> keras.Sequential:
     """Only transformations that keep the class: a flipped/rotated/cropped photo is still a photo.
-    (No colour jitter: colour statistics are one of the cues separating photos from paintings.)"""
-    return keras.Sequential([
+    (No colour jitter: colour statistics are one of the cues separating photos from paintings.)
+    grayscale > 0 converts that fraction of training images to black & white, so the model cannot use
+    "has colour => photo" as a shortcut and still recognises old black & white photographs."""
+    steps = [
         layers.RandomFlip("horizontal", seed=seed),
         layers.RandomRotation(0.05, seed=seed),
         layers.RandomZoom(0.15, seed=seed),
         layers.RandomTranslation(0.1, 0.1, seed=seed),
-    ], name="augmentation")
+    ]
+    if grayscale:
+        steps.append(layers.RandomGrayscale(factor=grayscale, seed=seed))
+    return keras.Sequential(steps, name="augmentation")
 
 
 def _head(x, dropout: float = 0.0):
@@ -70,7 +75,7 @@ def regularized_cnn(img_size: int = 160, filters=(32, 64, 128, 256), l2: float =
     return keras.Model(inp, _head(x, dropout), name="regularized_cnn")
 
 
-def transfer_mobilenet(img_size: int = 160, dropout: float = 0.3, trainable: bool = False):
+def transfer_mobilenet(img_size: int = 160, dropout: float = 0.3, trainable: bool = False, grayscale: float = 0.0):
     """E5/E6: MobileNetV2 pre-trained on ImageNet (1.4M natural photos) as a frozen feature extractor.
     Its features already encode 'natural image statistics' that separate photos from paintings.
     Returns (model, base) so the base can be partially unfrozen for fine-tuning."""
@@ -78,7 +83,7 @@ def transfer_mobilenet(img_size: int = 160, dropout: float = 0.3, trainable: boo
                                           weights="imagenet")
     base.trainable = trainable
     inp = keras.Input((img_size, img_size, 3), name="image")
-    x = augmentation()(inp)
+    x = augmentation(grayscale=grayscale)(inp)
     x = layers.Rescaling(1 / 127.5, offset=-1)(x)  # MobileNetV2 expects [-1, 1]
     x = base(x, training=False)  # keep BatchNorm in inference mode, even when fine-tuning
     x = layers.GlobalAveragePooling2D()(x)
@@ -96,7 +101,8 @@ def unfreeze_top(base: keras.Model, n_layers: int = 40):
             layer.trainable = False
 
 
-def compile_binary(model: keras.Model, lr: float = 1e-3, jit_compile: bool = False) -> keras.Model:
+def compile_binary(model: keras.Model, lr: float = 1e-3, jit_compile: bool = False,
+                   label_smoothing: float = 0.0) -> keras.Model:
     """Binary cross-entropy = negative log-likelihood of a Bernoulli output: the natural loss for a
     sigmoid classifier. Adam adapts the step size per parameter, a robust default for CNNs.
 
@@ -104,7 +110,9 @@ def compile_binary(model: keras.Model, lr: float = 1e-3, jit_compile: bool = Fal
     have ("Autotuning failed ... No valid config found"); plain cuDNN kernels work fine."""
     model.compile(
         optimizer=keras.optimizers.Adam(lr),
-        loss="binary_crossentropy",
+        # label_smoothing > 0 trains towards 1-e/2 and e/2 instead of 1 and 0: less over-confidence on
+        # the mislabelled images found in the archives (photos filed as schematics/paintings)
+        loss=keras.losses.BinaryCrossentropy(label_smoothing=label_smoothing),
         metrics=["accuracy", keras.metrics.AUC(name="auc"),
                  keras.metrics.Precision(name="precision"), keras.metrics.Recall(name="recall")],
         jit_compile=jit_compile,

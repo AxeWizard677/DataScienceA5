@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 SERVER = "https://file.legionera.fr"
-SHARE = "cloudreve://e6Up@share"
+SHARE = "cloudreve://jAFr:datascience@share"  # complete dataset (10,000 Schematics), password-protected share
 CATEGORIES = ["Painting", "Photo", "Schematics", "Sketch", "Text"]
 DEST = Path(__file__).resolve().parents[1] / "data" / "raw"
 HEADERS = {"User-Agent": "leyenda-downloader/1.0", "Content-Type": "application/json"}

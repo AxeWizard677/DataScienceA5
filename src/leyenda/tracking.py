@@ -30,7 +30,7 @@ import pandas as pd
 
 from .env import RUNS_DIR
 
-VERDICTS = ("pending", "baseline", "failure", "improvement", "best")
+VERDICTS = ("pending", "baseline", "failure", "improvement", "best", "aborted")
 
 
 class Run:
@@ -131,6 +131,11 @@ class Run:
         cbs.append(_atomic_checkpoint(self._ckpt, monitor, best))  # last: runs after CSVLogger has written
         return cbs
 
+    def abort(self, reason: str):
+        """Mark an interrupted / crashed attempt instead of deleting it: runs are never deleted, so the
+        experiment log keeps every attempt and why it stopped."""
+        self.annotate("aborted", reason)
+
     def best_model(self):
         """Best model of this run so far (lowest monitored validation loss)."""
         import keras
@@ -213,6 +218,31 @@ def _load_runs(deliverable: str):
         cfg = json.loads((d / "config.json").read_text())
         summ = json.loads((d / "summary.json").read_text()) if (d / "summary.json").exists() else {}
         yield d, cfg, summ
+
+
+def export_runs_csv(deliverables, path) -> pd.DataFrame:
+    """One row per run (settings + final metrics + verdict) for every deliverable, in one CSV file:
+    the versioned, human-readable record of all experiments (runs/ itself is too big for git)."""
+    rows = []
+    for deliverable in deliverables:
+        for d, cfg, summ in _load_runs(deliverable):
+            row = {"deliverable": deliverable, "run": d.name, "verdict": summ.get("verdict", "unfinished"),
+                   "hypothesis": cfg.get("hypothesis", ""), "lesson": summ.get("lesson", ""),
+                   "started": cfg.get("started"), "finished": summ.get("finished"),
+                   "epochs_run": summ.get("epochs_run"), "best_epoch": summ.get("best_val_loss_epoch"),
+                   "params": summ.get("params"), "generalization_gap": summ.get("generalization_gap")}
+            for k, v in cfg.items():
+                if k in ("name", "index", "started", "hypothesis"):
+                    continue
+                if isinstance(v, dict):
+                    row.update({f"{k}.{kk}": vv for kk, vv in v.items()})
+                else:
+                    row[k] = v if not isinstance(v, list) else "+".join(map(str, v))
+            row.update(summ.get("eval_metrics", {}))
+            rows.append(row)
+    df = pd.DataFrame(rows)
+    df.to_csv(path, index=False)
+    return df
 
 
 def compare_runs(deliverable: str) -> pd.DataFrame:
