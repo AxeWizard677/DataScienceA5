@@ -110,7 +110,7 @@ for pat in ".venv/" ".vscode/"; do
 done
 [ -d "$PROJECT_DIR/.git" ] || git -C "$PROJECT_DIR" init -q
 # Python standard du groupe : 3.10 (celui d'Ubuntu 22.04, donc de la VM). TensorFlow stable n'a pas de roues pour 3.14.
-PYTHON_REQUIRED="3.10"
+PYTHON_REQUIRED="${PYTHON_REQUIRED:-3.10}"
 PYTHON="${PYTHON:-python3}"
 if [ ! -d "$VENV_DIR" ]; then
   PY_VER="$("$PYTHON" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
@@ -126,7 +126,7 @@ VENV_VER="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version
 python -m pip install --upgrade pip setuptools wheel
 
 step "Librairies et TensorFlow GPU"
-LOCK_FILE="$PROJECT_DIR/requirements.lock.txt"
+LOCK_FILE="${LOCK_FILE:-$PROJECT_DIR/requirements.lock.txt}"
 if [ -f "$LOCK_FILE" ]; then
   # Le dépôt contient déjà les versions du groupe : on les installe à l'identique
   echo "requirements.lock.txt trouvé : installation des versions exactes du groupe."
@@ -138,7 +138,33 @@ else
   pip install "tensorflow[and-cuda]${TF_VERSION:+==$TF_VERSION}"
   LOCK_USED=0
 fi
+# TF 2.21 ne retrouve pas tout seul les libs CUDA installées dans le venv (nvidia/*/lib) :
+# on les ajoute au chemin de recherche, pour ce script, pour le venv (activate) et pour le kernel Jupyter.
+NVIDIA_LIBS="$(python -c 'import glob, site; print(":".join(sorted(glob.glob(site.getsitepackages()[0] + "/nvidia/*/lib"))))')"
+if [ -n "$NVIDIA_LIBS" ]; then
+  export LD_LIBRARY_PATH="$NVIDIA_LIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+  if ! grep -q "LEYENDA_NVIDIA_LIBS" "$VENV_DIR/bin/activate"; then
+    cat >> "$VENV_DIR/bin/activate" <<'ACTIVATE_PATCH'
+
+# LEYENDA_NVIDIA_LIBS : libs CUDA pip du venv visibles par TensorFlow
+for _d in "$VIRTUAL_ENV"/lib/python*/site-packages/nvidia/*/lib; do
+  [ -d "$_d" ] && export LD_LIBRARY_PATH="$_d${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+done
+unset _d
+ACTIVATE_PATCH
+  fi
+fi
 python -m ipykernel install --user --name leyenda --display-name "Python (Leyenda)"
+if [ -n "$NVIDIA_LIBS" ]; then
+  python - "$LD_LIBRARY_PATH" <<'KERNEL_PATCH'
+import json, os, sys
+from jupyter_client.kernelspec import KernelSpecManager
+path = os.path.join(KernelSpecManager().find_kernel_specs()["leyenda"], "kernel.json")
+spec = json.load(open(path))
+spec.setdefault("env", {})["LD_LIBRARY_PATH"] = sys.argv[1]
+json.dump(spec, open(path, "w"), indent=1)
+KERNEL_PATCH
+fi
 
 # VS Code : sélectionne le venv automatiquement à l'ouverture du dossier
 mkdir -p "$PROJECT_DIR/.vscode"
