@@ -46,7 +46,7 @@ with numbers.
 ### Reuse of D1
 Reuse the D1 loading/preprocessing logic (dataset folders, image formats, resizing)
 instead of rewriting it, but not the "load everything in RAM" behavior of
-utils.load_images. src/data.py is the shared data module: avoid two parallel
+src/utils.load_images. src/data.py is the shared data module: avoid two parallel
 versions of the same function.
 
 ### Decisions
@@ -70,7 +70,7 @@ versions of the same function.
 4. PSNR/SSIM comparison table
 5. Train both models; weights reloadable from models/ without retraining
 6. Case study: several noise levels, zoom on a fine detail, difference maps
-7. Notebook notebooks/02_denoising.ipynb, Restart & Run All passes with weights reloaded
+7. Notebook deliverable2.ipynb (repo root, next to deliverable1.ipynb), Restart & Run All passes with weights reloaded
 
 ### Notebook outline
 Context / loading / noise and its assumptions / architecture (diagram, role of each
