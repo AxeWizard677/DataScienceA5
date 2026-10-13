@@ -10,7 +10,7 @@ The main deliverable is `deliverable1.ipynb`: self-contained, about 29 min of tr
 - `notebooks/d1_dev/`: development notebooks of D1, `00_data_prep.ipynb` to `04_pretrained.ipynb`. They read `protocol/manifest.csv` and import `src/utils.py`; they read the data from `data/Datasets` only. Their first cell goes back to the repo root, so they can be opened from anywhere.
 - `src/`: shared code. `config.py` (image size, batch size, seed, noise level, paths), `data.py` (D2: photo split read from the manifest, `tf.data` pipeline with Gaussian noise), `utils.py` (D1 helpers: `load_images`, `class_weights`, `evaluate`, `plot_curves`).
 - `tests/`: `python -m tests.test_data` (run from the repo root).
-- `deliverable2.ipynb`: denoising with a convolutional auto-encoder (in progress: loading, noise and the two models are written; training, results and case study come next). It imports `src/config.py` and `src/data.py` and defines the models in its own cells.
+- `deliverable2.ipynb`: final notebook of D2, denoising with a convolutional auto-encoder and a U-Net (loading, noise, models, training, PSNR/SSIM comparison, case study, analysis). Open it from the repo root. Training takes about 15 min on a GPU; the weights are written to `models/d2_*.weights.h5` (not versioned) and reloaded by the notebook if they exist (set `RETRAIN = True` to train again).
 - `protocol/manifest.csv`: one row per image (`drop_reason`, `split`).
 - `reports/`: written by `deliverable1.ipynb`: `final_val_summary.csv`, `final_test_results.csv` and 7 PNG figures (MLP and CNN architecture, baseline curves, variant curves, pretrained curves, confusion matrix, error by origin); `reports/0*` (development) is not versioned.
 - `requirements.txt`: the dependencies to install (see Setup).
