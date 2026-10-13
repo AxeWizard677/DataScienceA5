@@ -22,7 +22,9 @@ chain together. Students must be able to explain and justify their work critical
   resize happens), float32 in [0, 1] when fed to a model.
 - Memory: some teammates have a 2 GB GPU. Small batches, tf.data, uint8 in memory.
 - Reproducibility: fixed seeds, pinned versions, relative paths only.
-- Code lives in src/, notebooks stay thin and call it.
+- Code shared and tested (config, data pipeline) lives in src/. The code that is the
+  point of a deliverable (models, training, evaluation) is written in the notebook
+  itself, visible and commented: the notebook is what is graded and must stand alone.
 
 ## Deliverable 1: binary classification (photo vs other)
 Notebook with: TensorFlow code and architecture diagram (parameters, loss,
@@ -64,9 +66,9 @@ versions of the same function.
 - Resizing to 128x128 squashes non-square images: assumed choice, state it.
 
 ### Work items (in order)
-1. build_autoencoder() in src/denoising.py
-2. build_unet() with skip connections
-3. Training script: early stopping, timestamped checkpoints, saved history, loss curves
+1. build_autoencoder() in deliverable2.ipynb (done)
+2. build_unet() with skip connections, same notebook (done)
+3. Training cells in the notebook: early stopping, timestamped checkpoints, saved history, loss curves
 4. PSNR/SSIM comparison table
 5. Train both models; weights reloadable from models/ without retraining
 6. Case study: several noise levels, zoom on a fine detail, difference maps
