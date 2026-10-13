@@ -1,7 +1,7 @@
 # Leyenda – Deliverable 1: Photo vs non-Photo
 
 Binary image classification for TouNum: Photo (label 1) against Painting, Schematics, Sketch and Text (label 0).
-The main deliverable is `deliverable1.ipynb`: self-contained, about 22 min on an NVIDIA GPU (22.1 min on an RTX 5060 Laptop in the last run).
+The main deliverable is `deliverable1.ipynb`: self-contained, about 29 min of training and evaluation on an NVIDIA GPU (29.4 min on an RTX 5060 Laptop in the last run).
 
 ## Repo structure
 
@@ -15,19 +15,47 @@ The main deliverable is `deliverable1.ipynb`: self-contained, about 22 min on an
 
 ## Data
 
+**Where to get it:** TODO_DATA_LINK (download the archive and unzip it at the repo root so that the folder below exists; `data/` is never committed).
+
+Expected structure of `data/` (the folder names are the class names, and are read as is):
+
+```
+data/
+└── Datasets/
+    ├── Painting/    (painting_00001.jpg, ...)
+    ├── Photo/       (photo_0001.jpg, ...)
+    ├── Schematics/
+    ├── Sketch/
+    └── Text/
+```
+
 `data/Datasets/<origin>/` at the repo root, not versioned: 41,399 files in 5 folders (Painting, Photo, Schematics, Sketch, Text).
 Dropped, never deleted: 696 exact duplicates (same md5), 401 images with a shortest side under 32 px (all Schematics). Kept: 40,302, split 70/15/15 stratified by origin (28,211 / 6,045 / 6,046), no md5 in two splits.
 The md5 of `protocol/manifest.csv` is `fe4b4a4407369bdfdfc15700576a0515`.
 
+## Model weights
+
+The trained weights (`models/final_pretrained.keras`, about 21 MB) are not versioned. Download them from Google Drive: TODO_DRIVE_LINK, then place the file in `models/` (create the folder if needed). `deliverable1.ipynb` does not reload them yet: it retrains and overwrites this file on every run.
+
 ## Setup
 
-1. Verified stack: Python 3.12, TensorFlow 2.21 (stable), Keras 3.15.1. Final-run stack: TensorFlow 2.22.0-rc0, Keras 3.16.0.dev (`requirements-lock.txt` is not created yet).
-2. `sudo apt install graphviz`, then `pip install -r requirements.txt pydot` (needed by `plot_model`).
+1. Verified stack: Python 3.12, TensorFlow 2.21.0 (stable), Keras 3.15.1 (also the stack of the last run). The exact versions of every package are listed in `requirements.lock.blackwell.txt` (not versioned yet).
+2. `sudo apt install graphviz` (system binary needed by `plot_model`), then `pip install -r requirements.txt` (`pydot` is included).
 3. On the 3.12 stack, set `LD_LIBRARY_PATH` to the pip `nvidia/cusolver/lib` folder (command below), otherwise no GPU is found.
 4. Internet is needed once to download the ImageNet weights of MobileNetV2.
 5. Every TensorFlow notebook stops with a message if no GPU is found.
 
-## How to run
+## How to install and run
+
+```bash
+git clone <repo-url> && cd leyenda
+python3.12 -m venv .venv && source .venv/bin/activate
+sudo apt install graphviz
+pip install -r requirements.txt
+# GPU on pip: pip install "tensorflow[and-cuda]==2.21.0", then the LD_LIBRARY_PATH line of the Environment section
+# put the data in data/Datasets/ (see Data), then:
+jupyter lab deliverable1.ipynb     # Run > Restart Kernel and Run All Cells (about 29 min)
+```
 
 Open the notebooks from the repo root (paths are relative). Run `00_data_prep.ipynb`, then optionally `01` to `04` (`02_cnn.ipynb` reads `reports/test_results.csv` written by `01`), then `deliverable1.ipynb`.
 Seed 42 everywhere. Two executions give slightly different numbers (GPU non-determinism): see the Limits cell of `deliverable1.ipynb`.
@@ -38,7 +66,7 @@ Everyone works on their own branch (e.g. `maxime/deliverable-1`); never push to 
 
 ## Environment
 
-Maxime's stack (WSL2 Ubuntu 26.04, RTX 5060 Laptop GPU 8 GB, driver 616.92): Python 3.14.4, TensorFlow 2.22.0rc0, keras-nightly 3.16.0.dev2026100504, CUDA 12.9 libraries from pip (`nvidia-*-cu12`). The notebooks print the exact library versions they ran with (first code cell).
+Maxime's stack (WSL2 Ubuntu 26.04, RTX 5060 Laptop GPU 8 GB, driver 616.92): Python 3.12, TensorFlow 2.21.0, Keras 3.15.1, numpy 2.5.4, pandas 3.0.6, scikit-learn 1.9.1, CUDA 12.9 libraries from pip (`nvidia-*-cu12`). The notebooks print the exact library versions they ran with (first code cell).
 
 ```bash
 python3 -m venv uv-bootstrap && uv-bootstrap/bin/pip install uv
