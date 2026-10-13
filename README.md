@@ -11,11 +11,12 @@ The main deliverable is `deliverable1.ipynb`: self-contained, about 29 min of tr
 - `utils.py`: shared helpers (`load_images`, `class_weights`, `evaluate`, `plot_curves`).
 - `protocol/manifest.csv`: one row per image (`drop_reason`, `split`).
 - `reports/`: written by `deliverable1.ipynb`: `final_val_summary.csv`, `final_test_results.csv` and 7 PNG figures (MLP and CNN architecture, baseline curves, variant curves, pretrained curves, confusion matrix, error by origin); `reports/0*` (development) is not versioned.
-- `requirements.txt`, `requirements-lock.txt` (exact versions of the final run; this file does not exist yet).
+- `requirements.txt`: the dependencies to install (see Setup).
+- `requirements.lock.blackwell.txt`: exact versions frozen on one machine with an NVIDIA Blackwell GPU (RTX 50 series). Only for that kind of GPU; everybody else uses `requirements.txt`.
 
 ## Data
 
-**Where to get it:** TODO_DATA_LINK (download the archive and unzip it at the repo root so that the folder below exists; `data/` is never committed).
+**Where to get it:** https://file.legionera.fr/s/jAFr/datascience (download the archive and unzip it at the repo root so that the folder below exists; `data/` is never committed).
 
 Expected structure of `data/` (the folder names are the class names, and are read as is):
 
