@@ -6,32 +6,41 @@ Usage from the repo root: `from src.data import make_dataset`.
 """
 from pathlib import Path
 
+import pandas as pd
 import tensorflow as tf
-from sklearn.model_selection import train_test_split
 
-from src.config import BATCH_SIZE, IMG_SIZE, NOISE_STD, SEED
+from src.config import BATCH_SIZE, DATA_DIR, IMG_SIZE, MANIFEST_PATH, NOISE_STD, SEED
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 
 def list_image_paths(root):
-    """Sorted list of image paths (jpg/jpeg/png) under `root`, subfolders included."""
-    # sorted(): the file-system order is not guaranteed; without sorting the split
-    # would not be reproducible from one machine to another.
+    """Sorted list of image paths (jpg/jpeg/png) under `root`, subfolders included.
+
+    Used for folders that are not in the manifest (e.g. the unseen demo dataset).
+    """
+    # sorted(): the file-system order is not guaranteed; without sorting the order
+    # (and so the fixed val/test noise) would differ from one machine to another.
     paths = [str(p) for p in Path(root).rglob("*") if p.suffix.lower() in IMAGE_EXTENSIONS]
     return sorted(paths)
 
 
-def split_paths(paths, seed=SEED):
-    """80/10/10 split (train/val/test) of the PATHS, before any noise is added.
+def photo_splits(manifest_path=MANIFEST_PATH, data_dir=DATA_DIR):
+    """(train, val, test) lists of photo paths, read from the project manifest.
 
-    Splitting the paths (not the noisy images) guarantees that an image cannot
-    end up in two sets, and that the noise cannot leak between them.
+    The split is the one computed once for D1 (70/15/15, checked for duplicate
+    leakage). Reusing it means an image never trains one model and tests another,
+    which matters when D3 chains the classifier and the denoiser. It is done on
+    PATHS, so it is always before any noise is added.
     """
-    # Two calls: 80 % / 20 %, then the remainder cut in two halves (10 % / 10 %).
-    train, rest = train_test_split(paths, test_size=0.20, random_state=seed)
-    val, test = train_test_split(rest, test_size=0.50, random_state=seed)
-    return train, val, test
+    df = pd.read_csv(manifest_path)
+    # Photos only (label 1), and only the images D1 kept (drop_reason is empty).
+    df = df[(df["label"] == 1) & df["drop_reason"].isna()]
+    # sorted(): same order on every machine, so the fixed val/test noise is reproducible.
+    return tuple(
+        sorted(str(Path(data_dir) / p) for p in df.loc[df["split"] == s, "path"])
+        for s in ("train", "val", "test")
+    )
 
 
 def add_noise(img, std, seed=None):

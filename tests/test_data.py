@@ -7,10 +7,11 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from PIL import Image
 
 from src.config import IMG_SIZE
-from src.data import list_image_paths, make_dataset, split_paths
+from src.data import list_image_paths, make_dataset, photo_splits
 
 N_IMAGES, BATCH = 20, 8
 
@@ -23,12 +24,21 @@ def _fake_photos(folder):
         Image.fromarray(rng.integers(0, 256, (h, w, 3), dtype=np.uint8)).save(Path(folder) / f"p{i:02d}.jpg")
 
 
-def test_split_is_disjoint_and_reproducible():
-    paths = [f"img_{i}.jpg" for i in range(100)]
-    train, val, test = split_paths(paths)
-    assert (len(train), len(val), len(test)) == (80, 10, 10)
+def test_photo_splits_from_manifest():
+    """Fake manifest: only kept photos are returned, split as written, no overlap."""
+    rows = [  # (path, label, drop_reason, split)
+        ("Photo/a.jpg", 1, None, "train"), ("Photo/b.jpg", 1, None, "train"),
+        ("Photo/c.jpg", 1, None, "val"), ("Photo/d.jpg", 1, None, "test"),
+        ("Photo/e.jpg", 1, "exact_duplicate", None),   # dropped by D1: must not appear
+        ("Text/f.jpg", 0, None, "train"),               # not a photo: must not appear
+    ]
+    with tempfile.TemporaryDirectory() as folder:
+        manifest = Path(folder) / "manifest.csv"
+        pd.DataFrame(rows, columns=["path", "label", "drop_reason", "split"]).to_csv(manifest, index=False)
+        train, val, test = photo_splits(manifest, data_dir="root")
+    assert [Path(p).name for p in train] == ["a.jpg", "b.jpg"]
+    assert [Path(p).name for p in val] == ["c.jpg"] and [Path(p).name for p in test] == ["d.jpg"]
     assert not (set(train) & set(val) | set(train) & set(test) | set(val) & set(test))
-    assert split_paths(paths) == (train, val, test)
 
 
 def test_shapes_range_and_deterministic_test_noise():
@@ -57,6 +67,6 @@ def test_shapes_range_and_deterministic_test_noise():
 
 
 if __name__ == "__main__":
-    test_split_is_disjoint_and_reproducible()
+    test_photo_splits_from_manifest()
     test_shapes_range_and_deterministic_test_noise()
     print("OK: all tests pass")
