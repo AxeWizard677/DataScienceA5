@@ -60,6 +60,9 @@ def train(spec: dict):
                                                 patience=spec.get("patience", 5),
                                                 reduce_lr=spec.get("reduce_lr", False)),
                         verbose=2)
+    import tensorflow as tf
+    peak_gpu_mb = (tf.config.experimental.get_memory_info("GPU:0")["peak"] / 2**20
+                   if tf.config.list_physical_devices("GPU") else None)
     if spec.get("early_stopping", False):
         model = run.best_model()  # restore the best epoch (equivalent of restore_best_weights, across restarts)
 
@@ -69,6 +72,10 @@ def train(spec: dict):
     metrics = {**{f"val_{k}": v for k, v in binary_metrics(val_df["label"], p_val).items()},
                **{f"train_{k}": v for k, v in binary_metrics(train_eval_df["label"], p_train).items()}}
     run.finish(model, history, metrics=metrics, show=False)
+    if peak_gpu_mb is not None:  # peak GPU memory of this training segment
+        summ = run.summary()
+        summ["peak_gpu_mb"] = round(peak_gpu_mb, 1)
+        (run.dir / "summary.json").write_text(json.dumps(summ, indent=2))
     print(f"[{run.dir.name}] done: val_f1={metrics['val_f1']:.4f} val_auc={metrics['val_roc_auc']:.4f}", flush=True)
 
 

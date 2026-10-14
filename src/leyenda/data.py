@@ -93,6 +93,13 @@ def train_eval_subset(train_df: pd.DataFrame, frac: float = 0.12, seed: int = 0)
     return train_df.groupby("category", group_keys=False).sample(frac=frac, random_state=seed)
 
 
+def fixed_benchmark(old_split: pd.DataFrame, new_split: pd.DataFrame) -> pd.DataFrame:
+    """Images of the new validation set that were never in the old training set: no model of part 1 or
+    part 2 trained on them, so every model can be compared on exactly the same unseen images."""
+    val = new_split[new_split["split"] == "val"]
+    return val[~val["path"].isin(old_split.loc[old_split["split"] == "train", "path"])].reset_index(drop=True)
+
+
 def class_weights(labels) -> dict:
     """Inverse-frequency weights so the minority class (photos) counts as much as the rest."""
     labels = np.asarray(labels)

@@ -119,6 +119,7 @@ class Run:
                     best = float(hist[monitor].min())  # best score from *before* the crash
 
         cbs = [
+            _epoch_timer(),  # first: adds epoch_time_s to the logs before CSVLogger writes them
             keras.callbacks.CSVLogger(str(history_csv), append=True),  # continues across restarts
             keras.callbacks.TensorBoard(log_dir=str(self.dir / "tb")),
         ]
@@ -155,6 +156,8 @@ class Run:
             "lesson": lesson,
             "finished": datetime.now().isoformat(timespec="seconds"),
             "epochs_run": len(hist),
+            # pure training time: sum of epoch durations, so a resumed run still reports its true total
+            "train_time_s": float(hist["epoch_time_s"].sum()) if "epoch_time_s" in hist else None,
             "eval_metrics": {k: float(v) for k, v in (metrics or {}).items()},
         }
         if not hist.empty:
@@ -191,7 +194,7 @@ def plot_curves(hist: pd.DataFrame, title: str = "", save_to=None, show: bool = 
     """Train vs validation curves for every metric in the history (loss, accuracy, ...)."""
     import matplotlib.pyplot as plt
 
-    metrics = [c for c in hist.columns if not c.startswith("val_") and c not in ("epoch", "learning_rate")]
+    metrics = [c for c in hist.columns if not c.startswith("val_") and c not in ("epoch", "learning_rate", "epoch_time_s")]
     fig, axes = plt.subplots(1, len(metrics), figsize=(5 * len(metrics), 3.5), squeeze=False)
     epochs = range(1, len(hist) + 1)
     for ax, m in zip(axes[0], metrics):
@@ -338,3 +341,19 @@ def _atomic_checkpoint(ckpt_dir: Path, monitor: str, best: float):
             os.replace(tmp, ckpt_dir / "state.json")
 
     return AtomicCheckpoint()
+
+
+def _epoch_timer():
+    """Measures each epoch's wall time (training + validation) and records it as `epoch_time_s`."""
+    import time
+    import keras
+
+    class EpochTimer(keras.callbacks.Callback):
+        def on_epoch_begin(self, epoch, logs=None):
+            self.start = time.perf_counter()
+
+        def on_epoch_end(self, epoch, logs=None):
+            if logs is not None:
+                logs["epoch_time_s"] = time.perf_counter() - self.start
+
+    return EpochTimer()

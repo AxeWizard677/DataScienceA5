@@ -75,6 +75,41 @@ def regularized_cnn(img_size: int = 160, filters=(32, 64, 128, 256), l2: float =
     return keras.Model(inp, _head(x, dropout), name="regularized_cnn")
 
 
+def _residual_block(x, filters: int, stride: int, l2: float):
+    """Two 3x3 convolutions + a shortcut that adds the block's input to its output (He et al., ResNet).
+    The shortcut lets gradients flow straight through, which makes deeper networks trainable from scratch."""
+    reg = regularizers.l2(l2) if l2 else None
+    shortcut = x
+    y = layers.Conv2D(filters, 3, strides=stride, padding="same", use_bias=False, kernel_regularizer=reg)(x)
+    y = layers.BatchNormalization()(y)
+    y = layers.Activation("relu")(y)
+    y = layers.Conv2D(filters, 3, padding="same", use_bias=False, kernel_regularizer=reg)(y)
+    y = layers.BatchNormalization()(y)
+    if stride != 1 or shortcut.shape[-1] != filters:  # projection when the shape changes
+        shortcut = layers.Conv2D(filters, 1, strides=stride, use_bias=False, kernel_regularizer=reg)(shortcut)
+        shortcut = layers.BatchNormalization()(shortcut)
+    return layers.Activation("relu")(layers.Add()([y, shortcut]))
+
+
+def residual_cnn(img_size: int = 160, widths=(32, 64, 128, 256), blocks_per_stage: int = 2,
+                 dropout: float = 0.4, l2: float = 0.0, grayscale: float = 0.0) -> keras.Model:
+    """Our own modern from-scratch architecture: a small ResNet (stem + 4 stages of residual blocks,
+    each stage halving the resolution and doubling the width, then global average pooling).
+    20 convolution layers (17 in the main path + 3 shortcut projections), a depth that plain stacks like
+    regularized_cnn can't train reliably."""
+    inp = keras.Input((img_size, img_size, 3), name="image")
+    x = augmentation(grayscale=grayscale)(inp)
+    x = layers.Rescaling(1 / 255)(x)
+    x = layers.Conv2D(widths[0], 3, strides=2, padding="same", use_bias=False)(x)  # stem: 160 -> 80 px
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+    for i, w in enumerate(widths):
+        for b in range(blocks_per_stage):
+            x = _residual_block(x, w, stride=2 if (b == 0 and i > 0) else 1, l2=l2)
+    x = layers.GlobalAveragePooling2D()(x)
+    return keras.Model(inp, _head(x, dropout), name="residual_cnn")
+
+
 def transfer_mobilenet(img_size: int = 160, dropout: float = 0.3, trainable: bool = False, grayscale: float = 0.0):
     """E5/E6: MobileNetV2 pre-trained on ImageNet (1.4M natural photos) as a frozen feature extractor.
     Its features already encode 'natural image statistics' that separate photos from paintings.
@@ -133,6 +168,7 @@ BUILDERS = {
     "mlp": mlp,
     "simple_cnn": simple_cnn,
     "regularized_cnn": regularized_cnn,
+    "residual_cnn": residual_cnn,
     "mobilenet_frozen": lambda **kw: transfer_mobilenet(**kw)[0],
     "mobilenet_finetune": finetune_mobilenet,
 }

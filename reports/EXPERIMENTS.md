@@ -76,6 +76,7 @@ black-and-white prints, and several "errors" are folder-label errors (photos fil
 | 5 | checkpoint test | resumed backup unreadable | Keras `BackupAndRestore` writes in place; a kill mid-write corrupts it | write to a temporary file, then atomic rename |
 | 6 | part 2, V1 attempt 1 | TF decoding error at epoch 1 | `painting_02662.jpg` is a **BMP file named .jpg**: PIL opens it, TensorFlow can't | the audit also checks every file with TensorFlow's decoder (`tf_decodable`); `clean_index` removes failures |
 | 7 | part 2, background run | notebook execution stopped when the session ended | `setsid nohup` processes still belong to the session's process group | background jobs started with `systemd-run --user` (outside the session) |
+| 8 | part 2, V2 frozen (2026-10-09 15:41) | queue killed at epoch 12, resumed 2026-10-12 at epoch 13 from its checkpoint | systemd stops a user's services when the user logs out | `loginctl enable-linger` (services survive logout); screen blanking, lock and auto-suspend disabled (`gsettings`) |
 
 ## 5. Data, complete delivery (2026-10-09)
 
@@ -95,9 +96,11 @@ Plan: one change per experiment (lesson from E4b).
 |---|---|---|---|---|---|---|
 | V1 frozen | E5 recipe on the complete data | 96.8% | 96.4% | 0.930 | 0.995 | done |
 | **V1** | E6 recipe (fine-tune 40 layers) | 99.1% | **98.5%** | **0.971** | 0.998 | done: new reference, better than E6 (0.963) |
-| V2 | + grayscale augmentation 25% | | | | | frozen stage paused at epoch 2 (checkpoint saved) |
-| V3 | + label smoothing 0.05, 60 layers, LR schedule | | | | | planned |
-| V4 | V3 at 224 px | | | | | planned |
+| V2 frozen | + grayscale augmentation 25% | 97.0% | 96.6% | 0.935 | 0.995 | done: better than V1 frozen (192 vs. 206 errors on the fixed set) |
+| V2 | V2 frozen + fine-tune 40 layers | 99.2% | 98.3% | 0.966 | 0.999 | done: slightly below V1 (F1 0.966 vs. 0.971); grayscale recall checked in the notebook |
+| **V3** | from V2 frozen: label smoothing 0.05, 60 layers, LR schedule | 99.5% | 98.7% | 0.974 | 0.998 | done: **best so far** (F1 0.974) |
+| V4 frozen | V2 frozen at 224 px | 97.7% | 97.3% | 0.948 | 0.997 | done: best frozen stage (F1 0.948) |
+| **V4** | V3's recipe at 224 px | 99.8% | **99.0%** | **0.980** | 0.999 | done: **best**, selected (55 errors on the fixed set) |
 
 ## 7. Target: 99%, then 100% (2026-10-09)
 
@@ -159,3 +162,92 @@ Since 2026-10-09: no more deletions. Failed attempts are kept and marked `aborte
 | 2026-10-09 | Use the complete dataset; retrain transfer-learning models only; keep 70/15/15 |
 | 2026-10-09 | Data cleaning must be done by code, never by hand |
 | 2026-10-09 | Relabeling the archive is out of scope; target maximum accuracy and report every remaining error's cause |
+
+## 11. Comparability check: "are the new changes making things worse?" (2026-10-09)
+
+The team noticed scores going down. Numbers had been compared across **different validation sets** (part 1 vs.
+part 2) and across **different model families** (the regularization sweep comes after E6 in time, but it improves
+the *from-scratch CNN*, not E6). Fixed benchmark from now on: the **4,523 images of the part-2 validation set
+that no model (part 1 or part 2) ever trained on**.
+
+| Model | Errors / 4,523 | Accuracy | Precision | Recall | F1 | AUC |
+|---|---|---|---|---|---|---|
+| E5 frozen (part 1) | 175 | 96.13% | 0.917 | 0.971 | 0.943 | 0.9929 |
+| V1 frozen (part 2) | 206 | 95.45% | 0.894 | 0.979 | 0.934 | 0.9928 |
+| E6 fine-tuned (part 1) | 141 | 96.88% | 0.926 | 0.985 | 0.954 | 0.9970 |
+| **V1 fine-tuned (part 2)** | **82** | **98.19%** | 0.966 | 0.979 | **0.973** | **0.9977** |
+
+- **Real regression, intermediate stage:** V1 frozen makes 31 more errors than E5 frozen. Its AUC is identical
+  (0.9929 vs. 0.9928), so the ranking quality is the same; the **decision threshold** moved. Photos are a smaller
+  share of the new training set (24.8% vs. 27.8%), the class weights changed, and the model accepts "photo" more
+  easily (recall ↑, precision ↓).
+- **Final model improved:** V1 fine-tuned makes 82 errors vs. 141 for E6 (−42%) on identical, unseen images.
+  (Slightly favourable to E6, whose early stopping used part of these images.)
+- Same-epoch comparison of the frozen stages: V2 (grayscale augmentation) ≥ V1 at 3 of the first 4 epochs.
+- **Rule adopted:** compare only on identical images, and only against the run's parent in its lineage:
+
+| Lineage | Runs | Parent |
+|---|---|---|
+| from-scratch MLP/CNN (part 1) | E1 → E2 → E3 → E4 → E4b-1/2/3 → E4c | previous run in the chain |
+| transfer learning (part 1) | E5 → E6 | E5 is E6's starting point |
+| transfer learning (part 2) | V1 frozen → V1; V2 frozen → V2 → V3; V4 frozen → V4 | V1 is the reference for V2–V4 |
+
+## 12. Our own models vs. pre-trained models: efficiency and time (2026-10-12)
+
+The project asks to **train our own network and compare it with a pre-trained one**, on accuracy *and* time
+and resource consumption. Part 1 has both families, but the comparison wasn't rigorous: different data
+(E4c on the first delivery, V3 on the complete one), unreliable times for resumed runs, and no inference or memory
+measurements.
+
+**Changes to make the comparison rigorous:**
+- `EpochTimer` callback: every epoch's duration is logged (`epoch_time_s`); `train_time_s` = their sum, so a
+  resumed run reports its true total. Training also records its peak GPU memory (`peak_gpu_mb`).
+- `residual_cnn`: our own modern from-scratch architecture (small ResNet: stem + 4 stages × 2 residual blocks,
+  20 convolution layers, 2.8 M parameters, about the size of MobileNetV2's 2.26 M), so the comparison isn't "a weak
+  own model vs. a strong pre-trained one".
+- `leyenda.benchmark`: scores every model on the **same fixed set** (the 4,523 never-trained-on images,
+  `data.fixed_benchmark`) and measures parameters, trainable parameters, file size, epochs, training time,
+  training/inference peak GPU memory, and inference speed on GPU and CPU.
+
+**Runs queued (`runs/queue_own.py`, after V4):**
+
+| Run | Model | Training settings | Hypothesis |
+|---|---|---|---|
+| O1 | our CNN, E4c recipe (dropout 0.4, no L2) | 40 epochs max, lr 1e-3, ReduceLROnPlateau, patience 10 | fair comparison: our best part-1 recipe on the complete data |
+| O2 | our small ResNet | same as O1 | a modern architecture closes part of the gap with transfer learning |
+
+Then the benchmark of E4c, E6, O1, O2, V1–V4 on GPU and CPU (`runs/benchmark/gpu.csv`, `cpu.csv`).
+
+### 12.1 Results (2026-10-13), fixed set of 4,523 never-seen images
+
+| Model | Family | Params | Train time | Inference GPU / CPU | Accuracy | Errors |
+|---|---|---|---|---|---|---|
+| E4c (part-1 data) | own | 1.18 M | 42 min | 760 / 60 img/s | 89.9% | 458 |
+| O1 own CNN, E4c recipe | own | 1.18 M | 49 min | 703 / 64 img/s | 90.4% | 435 |
+| O2 own ResNet | own | 2.80 M | 45 min | 821 / 118 img/s | 91.8% | 373 |
+| E6 (part-1 data) | pre-trained | 2.26 M | 9 min | 672 / 117 img/s | 96.9% | 140 |
+| V1 | pre-trained | 2.26 M | 13 min | 621 / 111 img/s | 98.2% | 82 |
+| V2 | pre-trained | 2.26 M | ~10 min* | 609 / 112 img/s | 97.8% | 98 |
+| V3 | pre-trained | 2.26 M | ~14 min* | 622 / 118 img/s | 98.3% | 76 |
+| **V4** | pre-trained | 2.26 M | 33 min | 491 / 55 img/s | **98.8%** | **55** |
+
+\* frozen stage interrupted and resumed before the epoch timer existed: slightly under-counted.
+
+- Own ResNet vs. own plain CNN: −14% errors, half the training GPU memory (528 vs. 1,008 MB), fastest inference.
+- Pre-trained vs. own: 4.5× (V1) to 7× (V4) fewer errors, and 3–4× faster to train at 160 px.
+
+## 13. Final model and test (2026-10-13)
+
+Selection on validation only (notebook §14): V4 is best on val accuracy (99.0%), F1 (0.980) and **grayscale photo
+recall (98.5%)**. V2's grayscale augmentation raised grayscale recall (95.9 → 97.0%) but cost some F1 (0.966 vs.
+0.971); V3's fine-tuning recipe recovered it (0.974); 224 px (V4) added the rest.
+
+**Test set (6,046 images, used once), threshold 0.66 chosen on validation:**
+accuracy **99.09%**, precision 97.9%, recall 98.4%, F1 0.982, AUC 0.998.
+Per source: Text 100%, Sketch 100%, Schematics 99.5%, Painting 98.4%, Photo (recall) 98.4%.
+Grayscale stress test: photo recall 98.4% → 98.0% (−0.4 pt; E6 had −4.3 pts): **colour shortcut removed**.
+
+Exported: `models/d1_photo_classifier.keras` + `.json` (V4, 224 px, threshold 0.664).
+
+**Possible next steps:** train V4 longer (it used all 20 epochs without early stopping), test-time augmentation,
+ensemble V3 + V4, CLIP features (§8), and a per-group (A–F) analysis of V4's remaining errors.
