@@ -44,18 +44,33 @@ def photo_splits(manifest_path=MANIFEST_PATH, data_dir=DATA_DIR):
 
 
 def add_noise(img, std, seed=None):
-    """Add N(0, std) Gaussian noise to `img` (float32 in [0, 1]), then clip to [0, 1].
+    """Add N(0, std) Gaussian noise to a batch `img` (float32 in [0, 1]), then clip to [0, 1].
 
+    std: a number (the same level for every image), or a pair (low, high): each image
+    of the batch then gets its own level, drawn uniformly between low and high.
     seed=None: different noise at every call (training).
     seed=int or tensor of 2 integers: deterministic noise (test set), using the
     "stateless" TensorFlow operations: same seed -> exactly the same noise.
     """
-    if seed is None:
-        noise = tf.random.normal(tf.shape(img), stddev=std)
-    else:
+    if seed is not None:
         seed = tf.convert_to_tensor(seed)
         if seed.shape.rank == 0:       # a single integer -> (seed, 0) pair required by TF
             seed = tf.stack([seed, tf.zeros_like(seed)])
+
+    if isinstance(std, (tuple, list)):
+        low, high = std
+        level_shape = [tf.shape(img)[0], 1, 1, 1]   # one level per image, shared by its pixels
+        if seed is None:
+            level = tf.random.uniform(level_shape, low, high)
+            noise = tf.random.normal(tf.shape(img)) * level
+        else:
+            # Two different seeds: otherwise the levels and the noise would come from the same random numbers.
+            seed_level, seed_noise = tf.unstack(tf.random.experimental.stateless_split(seed, 2))
+            level = tf.random.stateless_uniform(level_shape, seed_level, low, high)
+            noise = tf.random.stateless_normal(tf.shape(img), seed=seed_noise) * level
+    elif seed is None:
+        noise = tf.random.normal(tf.shape(img), stddev=std)
+    else:
         noise = tf.random.stateless_normal(tf.shape(img), seed=seed, stddev=std)
     # The clip keeps values valid: the model sees the same range as with a clean input.
     return tf.clip_by_value(img + noise, 0.0, 1.0)

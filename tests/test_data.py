@@ -11,7 +11,9 @@ import pandas as pd
 from PIL import Image
 
 from src.config import IMG_SIZE
-from src.data import list_image_paths, make_dataset, photo_splits
+import tensorflow as tf
+
+from src.data import add_noise, list_image_paths, make_dataset, photo_splits
 
 N_IMAGES, BATCH = 20, 8
 
@@ -66,7 +68,22 @@ def test_shapes_range_and_deterministic_test_noise():
         assert not np.array_equal(e1, e2)
 
 
+def test_noise_range_gives_one_level_per_image():
+    # Gray images (0.5), far from the borders 0 and 1: the clip removes only a little noise
+    # (at 0.3 the measured level is a bit lower), which the margins below allow.
+    gray = tf.fill([8, 32, 32, 3], 0.5)
+    noisy = add_noise(gray, (0.05, 0.3), seed=1)
+    level = tf.math.reduce_std(noisy - gray, axis=(1, 2, 3)).numpy()   # measured level of each image
+    assert 0.04 < level.min() and level.max() < 0.32     # inside the range (with some sampling margin)
+    assert level.max() - level.min() > 0.05              # and different from one image to the next
+    # Fixed seed: same noise. Other seed: other noise. No seed: other noise at each call.
+    assert np.array_equal(noisy.numpy(), add_noise(gray, (0.05, 0.3), seed=1).numpy())
+    assert not np.array_equal(noisy.numpy(), add_noise(gray, (0.05, 0.3), seed=2).numpy())
+    assert not np.array_equal(add_noise(gray, (0.05, 0.3)).numpy(), add_noise(gray, (0.05, 0.3)).numpy())
+
+
 if __name__ == "__main__":
     test_photo_splits_from_manifest()
+    test_noise_range_gives_one_level_per_image()
     test_shapes_range_and_deterministic_test_noise()
     print("OK: all tests pass")
