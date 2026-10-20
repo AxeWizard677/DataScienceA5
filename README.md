@@ -1,7 +1,7 @@
 # Leyenda – Deliverable 1: Photo vs non-Photo
 
 Binary image classification for TouNum: Photo (label 1) against Painting, Schematics, Sketch and Text (label 0).
-The main deliverable is `deliverable1.ipynb`: self-contained, about 29 min of training and evaluation on an NVIDIA GPU (29.4 min on an RTX 5060 Laptop in the last run).
+The main deliverable is `deliverable1.ipynb`: self-contained. Final model: MobileNetV2 fine-tuned at 224x224 (section 7.2), **99.07% test accuracy, 99.05% balanced accuracy**. It runs on a 2 GB GPU: about 35 min when the improved models are reloaded from `models/` (`REUSE = True`), about 2 h when everything is trained (GRID T4-2Q, 2 GB).
 
 ## Repo structure
 
@@ -12,7 +12,7 @@ The main deliverable is `deliverable1.ipynb`: self-contained, about 29 min of tr
 - `tests/`: `python -m tests.test_data` (run from the repo root).
 - `deliverable2.ipynb`: final notebook of D2, denoising with a convolutional auto-encoder and a U-Net (loading, noise, models, training, PSNR/SSIM comparison, case study, analysis), then a U-Net trained on several noise levels and a residual variant (section 8). Open it from the repo root. Training the four models takes about 30 min on a GPU; the weights are written to `models/d2_*.weights.h5` (not versioned) and reloaded by the notebook if they exist (set `RETRAIN = True` to train again).
 - `protocol/manifest.csv`: one row per image (`drop_reason`, `split`).
-- `reports/`: written by `deliverable1.ipynb`: `final_val_summary.csv`, `final_test_results.csv` and 7 PNG figures (MLP and CNN architecture, baseline curves, variant curves, pretrained curves, confusion matrix, error by origin); `reports/0*` (development) is not versioned.
+- `reports/`: written by `deliverable1.ipynb`: `final_val_summary.csv`, `final_test_results.csv`, `final_pretrained_improvements.csv` (section 7.2), `final_cost.csv` (weights, training time, speed) and PNG figures (MLP and CNN architecture, baseline curves, variant curves, ResNet curves, pretrained curves, improvements, confusion matrix, error by origin); `reports/0*` (development) is not versioned.
 - `requirements.txt`: the dependencies to install (see Setup).
 - `requirements.lock.blackwell.txt`: exact versions frozen on one machine with an NVIDIA Blackwell GPU (RTX 50 series). Only for that kind of GPU; everybody else uses `requirements.txt`.
 
@@ -38,7 +38,7 @@ The md5 of `protocol/manifest.csv` is `fe4b4a4407369bdfdfc15700576a0515`.
 
 ## Model weights
 
-The trained weights (`models/final_pretrained.keras`, about 21 MB) are not versioned. Download them from Google Drive: TODO_DRIVE_LINK, then place the file in `models/` (create the folder if needed). `deliverable1.ipynb` does not reload them yet: it retrains and overwrites this file on every run.
+The trained weights are not versioned. `models/final_pretrained.keras` (final model, 224x224) and `models/final_pretrained.json` (its image size and threshold) are written at the end of `deliverable1.ipynb`. The improved models (`models/d1_resnet.keras`, `d1_p3*.keras`, `d1_p4.keras`, `d1_p5*.keras`, with their `_history.json`) are reloaded when `REUSE = True` and retrained when `REUSE = False` or missing. Download link: TODO_DRIVE_LINK.
 
 ## Setup
 

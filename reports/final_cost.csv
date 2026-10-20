@@ -1,0 +1,7 @@
+model,weights,trained weights,train time (min),images/s (GPU),test balanced accuracy,test accuracy
+MLP,6299905.0,6299905.0,1.716,7510.6208,0.7917,0.734
+CNN baseline,826529.0,826529.0,3.0713,7221.2603,0.8586,0.8936
+CNN best variant (e. global avg pooling),27809.0,27809.0,3.0097,7471.2885,0.9109,0.9057
+ResNet (ours),2800097.0,2795297.0,30.5467,1953.5037,0.9327,0.93
+MobileNetV2 (phase 2: fine-tuned),2259265.0,1512001.0,7.8919,1795.505,0.978,0.9845
+MobileNetV2 P5 = P4 at 224 px (final),2259265.0,1933057.0,32.6056,690.082,0.9905,0.9907
