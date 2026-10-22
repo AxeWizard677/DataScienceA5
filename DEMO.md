@@ -14,3 +14,7 @@ The D3 check ran `caption()` of each notebook on `demo_images/01-05` and the 6 p
 
 `demo_eval/`: 12 test-split images of `protocol/manifest.csv` (seed 42): 6 Photo, 2 Text, 2 Painting, 1 Sketch, 1 Schematics.
 Both notebooks classify 11 of 12 correctly; both accept `painting_09186.jpg` (a painting) as a photo.
+
+Manual injection (if a step fails on the real data): in the last cells of `demo_submitted.ipynb`, set `INJECT_FILE` to the path of one image and `INJECT_FROM` to the step where it enters: "classify" (D1, D2, D3), "denoise" (D2, D3) or "caption" (D3 only).
+To send an image through even if D1 says "not a photo": `run_pipeline(items, force_photo=["name.jpg"])`; the table then shows "photo (forced)".
+`pipeline.ipynb` is the fallback demo: it runs on its own, and only `INPUT_FOLDER` changes in its last cell.
