@@ -47,6 +47,27 @@ def choose_subset(image_ids, n, seed=SEED):
     return ids[:n]
 
 
+def split_ids(image_ids):
+    """(train, val, test) lists of image ids, 80/10/10, from the ORDERED list of choose_subset.
+
+    The split is by IMAGE: all the captions of an image stay together. Otherwise the model
+    would train on some captions of an image and be tested on another caption of the same image.
+    The image at position i of the shuffled list goes to val if i % 10 == 8, to test if
+    i % 10 == 9, and to train otherwise. A position does not depend on the size of the subset,
+    so when the subset grows, the images already used keep their set (the test set never leaks).
+    The list must be given in the order returned by choose_subset (do not sort it).
+    """
+    train, val, test = [], [], []
+    for position, image_id in enumerate(image_ids):
+        if position % 10 == 8:
+            val.append(image_id)
+        elif position % 10 == 9:
+            test.append(image_id)
+        else:
+            train.append(image_id)
+    return train, val, test
+
+
 def save_subset_ids(image_ids, coco_dir=COCO_DIR):
     """Write the chosen ids to coco_dir/subset_image_ids.json (a record, to compare between teammates)."""
     path = Path(coco_dir) / "subset_image_ids.json"

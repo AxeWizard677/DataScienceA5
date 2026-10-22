@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 
 from src.coco import (ANNOTATIONS_ZIP, CAPTIONS_MEMBER, IMAGES_ZIP, choose_subset,
-                      extract_images, image_filename, load_captions)
+                      extract_images, image_filename, load_captions, split_ids)
 
 # Three images; image 7 has two captions, image 3 has one with spaces and a line break around it.
 ANNOTATIONS = [
@@ -49,6 +49,17 @@ def test_subset_is_reproducible_nested_and_independent_of_input_order():
     assert choose_subset(ids, 20, seed=1) != small                 # another seed, another subset
 
 
+def test_split_is_80_10_10_disjoint_and_stable_when_the_subset_grows():
+    ids = choose_subset(list(range(1000)), 100)
+    train, val, test = split_ids(ids)
+    assert (len(train), len(val), len(test)) == (80, 10, 10)
+    assert not (set(train) & set(val) | set(train) & set(test) | set(val) & set(test))
+    assert set(train) | set(val) | set(test) == set(ids)           # nothing lost, nothing added
+    # A bigger subset starts with the same images: each of them stays in the same set.
+    big_train, big_val, big_test = split_ids(choose_subset(list(range(1000)), 300))
+    assert (set(train) <= set(big_train)) and (set(val) <= set(big_val)) and (set(test) <= set(big_test))
+
+
 def test_extract_images_copies_only_the_subset_and_can_run_twice():
     with tempfile.TemporaryDirectory() as folder:
         _fake_coco(folder)
@@ -63,5 +74,6 @@ if __name__ == "__main__":
     test_image_filename()
     test_load_captions_groups_by_image()
     test_subset_is_reproducible_nested_and_independent_of_input_order()
+    test_split_is_80_10_10_disjoint_and_stable_when_the_subset_grows()
     test_extract_images_copies_only_the_subset_and_can_run_twice()
     print("OK: all tests pass")
