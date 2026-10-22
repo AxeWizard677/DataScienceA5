@@ -1,0 +1,16 @@
+{
+  "encoder": "ConvNeXtLarge (ImageNet-22k then 1k, frozen, include_top=False)",
+  "encoder_input": 288,
+  "regions": 81,
+  "feature_dim": 1536,
+  "max_len": 22,
+  "vocab_size": 5000,
+  "training": "cross-entropy then SCST",
+  "beam": 3,
+  "no_repeat_ngram": 2,
+  "weights_from": "d3_captioner_convnextl_scst_20261022_090648.weights.h5",
+  "trained_on": "MS COCO 2017, 86,301 images (70/15/15 split, seed 42)",
+  "test_photos": 18493,
+  "test_bleu4": 0.301,
+  "test_cider_d": 1.124
+}

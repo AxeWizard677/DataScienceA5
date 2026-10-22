@@ -1,0 +1,10 @@
+{
+  "model": "Larger U-Net (13.2), 2.76M parameters, fine-tuned for heavy blur (section 17)",
+  "tile": 512,
+  "tile_margin": 48,
+  "tta_orientations": 8,
+  "gate": "correction or sharpening",
+  "gate_correction": 0.0275,
+  "gate_sharpening": 1.3,
+  "gate_rule": "the photo is processed if mean |U-Net output - input| >= gate_correction OR edges(output) / edges(input) >= gate_sharpening (one pass, no TTA); otherwise it is returned unchanged"
+}

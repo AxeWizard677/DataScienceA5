@@ -1,0 +1,17 @@
+{
+  "chosen_on_validation": "d3_captioner_convnextl_cont_20261021_234230.weights.h5",
+  "validation_bleu": {
+    "d3_captioner_convnextl_20261021_213432.weights.h5": {
+      "BLEU-1": 0.7335203366058906,
+      "BLEU-2": 0.5641734131988878,
+      "BLEU-3": 0.416546837250423,
+      "BLEU-4": 0.30204171814105213
+    },
+    "d3_captioner_convnextl_cont_20261021_234230.weights.h5": {
+      "BLEU-1": 0.7361461592813162,
+      "BLEU-2": 0.5700995061228598,
+      "BLEU-3": 0.4237773774871518,
+      "BLEU-4": 0.31140949062551176
+    }
+  }
+}

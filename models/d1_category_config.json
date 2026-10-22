@@ -1,0 +1,13 @@
+{
+  "classes": [
+    "Painting",
+    "Photo",
+    "Schematics",
+    "Sketch",
+    "Text"
+  ],
+  "C": 0.01,
+  "features": "D1 final model, layer before Dense(1)",
+  "test_accuracy": 0.9758518028448561,
+  "test_balanced_accuracy": 0.9773839821622999
+}

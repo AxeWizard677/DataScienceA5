@@ -1,0 +1,8 @@
+image,size,P(photo) D1,D1,caption without D2,caption after D2 (final),seconds
+01_clean_photo.png,640x480,0.992,photo,a white house sitting on top of a wooden pier,a house with a wooden dock in the background,5.8
+02_noisy_photo.png,480x640,0.986,photo,a woman sitting at a table with a laptop,a woman sitting on a desk with a laptop,5.5
+03_very_noisy_photo.png,480x640,0.897,photo,a black and white photo of a body of water,a black and white photo of a boat on the water,5.8
+04_scan_damaged_photo.png,1024x768,0.998,photo,a black and white photo of a boat on the water,a large body of water with a boat on it,5.4
+05_blurred_photo.png,480x640,0.589,photo,a bench sitting on top of a wooden pier,a bench sitting on top of a wooden bench,5.4
+06_sketch_not_a_photo.jpg,411x583,0.135,not a photo: stop,-,-,0.1
+07_diagram_not_a_photo.jpg,787x695,0.001,not a photo: stop,-,-,0.1

@@ -1,0 +1,9 @@
+model,precision,recall,f1,balanced_acc,pr_auc,accuracy
+majority,0.0,0.0,0.0,0.5,0.2479,0.7521
+decision tree (metadata),0.9641,0.9853,0.9746,0.9866,0.9849,0.9873
+MLP,0.4807,0.9059,0.6281,0.7917,0.6183,0.734
+CNN baseline,0.7834,0.7892,0.7863,0.8586,0.8344,0.8936
+CNN best variant (e. global avg pooling),0.7534,0.9213,0.8289,0.9109,0.8991,0.9057
+ResNet (ours),0.8099,0.938,0.8692,0.9327,0.9462,0.93
+MobileNetV2 (phase 2: fine-tuned),0.9718,0.9653,0.9685,0.978,0.9935,0.9845
+MobileNetV2 P5 = P4 at 224 px (final),0.9731,0.99,0.9815,0.9905,0.9953,0.9907
